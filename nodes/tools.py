@@ -6,9 +6,11 @@ from langchain_tavily import TavilySearch
 from langchain_core.messages import ToolMessage
 from langgraph.graph import END
 
+from nodes.human import human_assistance # for human assistance
+
 # Initialize tools
 tool = TavilySearch(max_results=2)
-tools = [tool]
+tools = [tool, human_assistance]
 
 class BasicToolNode:
     # node that runs tools requested in last message
@@ -36,7 +38,7 @@ class BasicToolNode:
         return {"messages": outputs}
 
 # Create tool node instance
-tool_node = BasicToolNode(tools=[tool])
+tool_node = BasicToolNode(tools=tools)
 
 # Routing function for conditional edges
 def route_tools(state):
