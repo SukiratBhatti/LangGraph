@@ -1,0 +1,6 @@
+langchain
+langgraph
+anthropic
+python-dotenv
+ipython
+typing-extensions

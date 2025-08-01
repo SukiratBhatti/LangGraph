@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Environments
+.venv/
+venv/
+env/
+
+# Editor/OS stuff
+.DS_Store
+.vscode/
+
+# Secrets
+.env
+
+# LangGraph image
+graph.png
