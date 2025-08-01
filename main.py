@@ -1,52 +1,65 @@
 import os
-from langchain.chat_models import init_chat_model
-
-from typing import Annotated
-from typing_extensions import TypedDict
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-
-from IPython.display import Image, display
-
 from dotenv import load_dotenv
+from langgraph.graph import StateGraph, START, END
+from IPython.display import Image, display
+import re # for transcripts
+
+# Load environment variables
 load_dotenv()
-# os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
 
-#1. define state
-class State(TypedDict):
-    # messages appended to list via add_messages
-    messages: Annotated[list, add_messages]
+# Import node definitions
+from nodes.chatbot import State, chatbot_node, llm
+from nodes.tools import tool_node, tools, route_tools
 
-#2. create graph
+# Bind tools to the chatbot model
+llm_with_tools = llm.bind_tools(tools)
+
+# Create graph
 graph_builder = StateGraph(State)
 
-#3. set up model
-llm = init_chat_model("anthropic:claude-3-5-sonnet-20240620")
+# Add nodes
+graph_builder.add_node("chatbot", lambda state: chatbot_node(state, llm_with_tools))
+graph_builder.add_node("tools", tool_node)
 
-# 4. add chatbot node (intersection)
-def chatbot(state: State):
-    return {"messages": [llm.invoke(state["messages"])]}
-
-graph_builder.add_node("chatbot", chatbot)
-
-
-#5. add + exit entries before compiling
+# Wire the graph
 graph_builder.add_edge(START, "chatbot")
 
-graph_builder.add_edge("chatbot", END)
+# Conditional routing to tools
+graph_builder.add_conditional_edges(
+    "chatbot",
+    route_tools,
+    {"tools": "tools", END: END}
+)
 
+graph_builder.add_edge("tools", "chatbot")
 
-#6. compile since nodes + edges are done.
+# Compile the graph
 graph = graph_builder.compile()
 
-#7. run test:
-
+# Stream function
 def stream_graph_updates(user_input: str):
-    for event in graph.stream({"messages": [{"role": "user", "content":user_input}]}):
-        for value in event.values():
-            print("Assistant", value["messages"][-1].content)
 
+    os.makedirs("transcripts", exist_ok=True)
+    transcript_lines = [f"User: {user_input}"]
+
+    for event in graph.stream({
+        "messages": [
+            {"role": "system", "content": "You are an assistant who can use tools to search up information."},
+            {"role": "user", "content": user_input}
+            ]
+        }):
+        for value in event.values():
+            ai_message = value["messages"][-1].content
+            print("Assistant:", value["messages"][-1].content)
+            transcript_lines.append(f"Assistant: {ai_message}")
+
+    filename = re.sub(r"[^\w\d\-_. ]", "", user_input)[:40].strip().replace(" ", "_")
+    filepath = f"transcripts/{filename}.txt"
+    
+    with open(filepath, "w") as f:
+        f.write("\n".join(transcript_lines))
+
+# Main interaction loop
 while True:
     try:
         user_input = input("user: ")
@@ -60,11 +73,10 @@ while True:
         stream_graph_updates(user_input)
         break
 
-
-# 8. create chart
+# Generate graph visualization
 graph_bytes = graph.get_graph().draw_mermaid_png()
 
 with open("graph.png", "wb") as f:
     f.write(graph_bytes)
 
-print("✅ Graph saved to graph.png")
+print("Graph saved to graph.png")
