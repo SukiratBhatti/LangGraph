@@ -69,6 +69,8 @@ while True:
             stream_mode="values",
         )
         for event in events:
+            print("\n🔍 Raw event:")
+            print(event)
             if "messages" in event:
                 last_msg = event["messages"][-1]
                 if isinstance(last_msg, AIMessage):
