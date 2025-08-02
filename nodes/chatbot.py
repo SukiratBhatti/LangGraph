@@ -3,9 +3,11 @@ from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.graph.message import add_messages
 
-# Define state type
+# Define state type - following the customize state documentation
 class State(TypedDict):
     messages: Annotated[list, add_messages]
+    name: str
+    birthday: str
 
 # Set up model
 llm = init_chat_model("anthropic:claude-3-5-sonnet-20240620")
