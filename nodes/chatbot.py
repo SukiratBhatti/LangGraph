@@ -15,4 +15,11 @@ def chatbot_node(state: State, llm_with_tools=None):
     # Claude internally decides if tools are needed, otehrwise provide answer via training.
 
     model = llm_with_tools if llm_with_tools else llm
-    return {"messages": [model.invoke(state["messages"])]}
+    message = model.invoke(state["messages"])
+    
+    # Because we will be interrupting during tool execution,
+    # we disable parallel tool calling to avoid repeating any
+    # tool invocations when we resume.
+    assert len(message.tool_calls) <= 1
+    
+    return {"messages": [message]}

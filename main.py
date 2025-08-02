@@ -1,128 +1,114 @@
+"""
+LangGraph Chatbot - Following Official Documentation
+
+This chatbot follows the official LangGraph documentation pattern:
+1. Basic chatbot with tools
+2. Memory/checkpointing
+3. Human-in-the-loop functionality
+4. Simple interaction loop
+"""
+
 import os
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
 from IPython.display import Image, display
 import re # for transcripts
-from langchain_core.messages import HumanMessage
-from langchain_core.messages import AIMessage
-
 
 # Load environment variables
 load_dotenv()
 
 # Import node definitions
-from nodes import human
 from nodes.chatbot import State, chatbot_node, llm
 from nodes.tools import tool_node, tools, route_tools
 from nodes.memory import config, memory
 from nodes.human import Command, interrupt
 
-
 # Bind tools to the chatbot model
 llm_with_tools = llm.bind_tools(tools)
 
-# Create graph
+# Create graph - following official documentation exactly
 graph_builder = StateGraph(State)
 
 # Add nodes
 graph_builder.add_node("chatbot", lambda state: chatbot_node(state, llm_with_tools))
 graph_builder.add_node("tools", tool_node)
 
-# Wire the graph
+# Wire the graph - following official documentation
 graph_builder.add_edge(START, "chatbot")
-
-# Conditional routing to tools
 graph_builder.add_conditional_edges(
     "chatbot",
     route_tools,
-    {"tools": "tools", END: END}
 )
-
 graph_builder.add_edge("tools", "chatbot")
-
 
 # Compile the graph
 graph = graph_builder.compile(checkpointer=memory)
 
-# Main interaction loop
-transcript_lines = []  # <- Accumulate whole transcript here
+# Main interaction loop - following official documentation
+transcript_lines = []
 
 while True:
     try:
-
+        # Check if we're waiting for human input (interrupt state)
         snapshot = graph.get_state(config)
         next_node = snapshot.next
 
-
-        #case 1: waiting for human tool via interrupt
+        # Case 1: waiting for human tool via interrupt
         if next_node == ("tools",):
-            print("Waiting for human to resume tool")
+            print("\n🤖 Assistant is requesting human assistance...")
+            
+            # Check if this is a human_assistance tool call
+            messages = snapshot.values.get("messages", [])
+            if messages and hasattr(messages[-1], 'tool_calls'):
+                tool_calls = messages[-1].tool_calls
+                for tool_call in tool_calls:
+                    if tool_call.get("name") == "human_assistance":
+                        query = tool_call.get("args", {}).get("query", "Please provide assistance")
+                        print(f"🤖 Assistant asks: {query}")
+                        break
 
-            human_input = input("Human (tool response): ")
-            command = Command(resume={"data":human_input})
-            transcript_lines.append(f"Human: {human_input}")
+            human_input = input("👤 Human response: ")
+            command = Command(resume={"data": human_input})
+            transcript_lines.append(f"Human (assistance): {human_input}")
 
             events = graph.stream(command, config, stream_mode="values")
 
-
-        #case 2: standrad human input
+        # Case 2: standard human input
         else: 
-            user_input = input("User: ")
-            if user_input.lower() in ["quit", "q", "no"]:
-                print("Jarvis going offline.")
-
+            user_input = input("👤 User: ")
+            if user_input.lower() in ["quit", "q", "exit"]:
+                print("🤖 Assistant going offline.")
+                
                 # Save final transcript
-                os.makedirs("transcripts", exist_ok=True)
-                filename = re.sub(r"[^\w\d\-_. ]", "", transcript_lines[0])[:40].strip().replace(" ", "_")
-                filepath = f"transcripts/{filename}.txt"
-                with open(filepath, "w") as f:
-                    f.write("\n".join(transcript_lines))
+                if transcript_lines:
+                    os.makedirs("transcripts", exist_ok=True)
+                    filename = re.sub(r"[^\w\d\-_. ]", "", transcript_lines[0])[:40].strip().replace(" ", "_")
+                    filepath = f"transcripts/{filename}.txt"
+                    with open(filepath, "w") as f:
+                        f.write("\n".join(transcript_lines))
                 break
 
             # Add user input to transcript
             transcript_lines.append(f"User: {user_input}")
 
-            # Stream response and append to transcript
+            # Stream response - following official documentation exactly
             events = graph.stream(
                 {"messages": [{"role": "user", "content": user_input}]},
                 config,
                 stream_mode="values",
             )
 
-        # shared msg handling:
+        # Process events - following official documentation
         for event in events:
-            # print("\n🔍 Raw event:")
-            # print(event)
             if "messages" in event:
                 last_msg = event["messages"][-1]
-                if last_msg.type == "text":
-                    print("\n 🧠 Assistant:", last_msg.content)
+                if hasattr(last_msg, 'content') and last_msg.content:
+                    print(f"\n🤖 Assistant: {last_msg.content}")
                     transcript_lines.append(f"Assistant: {last_msg.content}")
-                    found_assistant_response = True
-                # if isinstance(last_msg, AIMessage):
-                #     content = last_msg.content
-                #     print("Assistant:")
-
 
     except Exception as e:
-        print("Error:", e)
+        print(f"❌ Error: {e}")
         break
-
-
-snapshot = graph.get_state(config)
-if snapshot.next == ("tools",):
-    print("⏸️  Paused: waiting for human input. Run help.py to resume.")
-    exit()
-
-
-# viewing full memory for debugging purposes:
-# print("\n 🧠 Current Memory")
-# if "messages" in snapshot.values:
-#     for m in snapshot.values["messages"]:
-#         print(f"{m.__class__.__name__}: {m.content}")
-# else:
-#     print("NO msgs found in state.")
-#     print("full snapshot vlaues:", snapshot.values)
 
 # Generate graph visualization
 graph_bytes = graph.get_graph().draw_mermaid_png()
