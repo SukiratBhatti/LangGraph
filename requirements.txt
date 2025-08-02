@@ -2,6 +2,5 @@ langchain
 langgraph
 anthropic
 python-dotenv
-ipython
-typing-extensions
 langchain-tavily
+typing-extensions
