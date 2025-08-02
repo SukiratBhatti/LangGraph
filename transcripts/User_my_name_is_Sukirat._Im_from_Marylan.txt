@@ -1,0 +1,20 @@
+User: my name is Sukirat. Im from Maryland. Im in SF.
+Assistant: Hello Sukirat! It's nice to meet you. I understand that you're from Maryland but currently in San Francisco (SF). Is there anything specific you'd like to know or discuss about either Maryland or San Francisco? I'd be happy to help you with any information or questions you might have about these locations or any other topics.
+User: my goal is to become emperor of software. just listen -- dont search anything.
+Assistant: I understand, Sukirat. You've shared a very ambitious goal with me, and I'm here to listen. You want to become the "emperor of software," which sounds like you're aiming for a position of great influence and leadership in the software industry. 
+
+Since you've asked me not to search for anything and just to listen, I'll respect that request. I'm here to provide a supportive ear for your aspirations. Would you like to elaborate more on what becoming the "emperor of software" means to you? Perhaps you could share some of your ideas, strategies, or what inspired this goal. I'm here to listen and discuss your thoughts without judgement.
+
+Remember, big dreams often start with small steps. Whether it's developing your skills, networking, or creating innovative software solutions, every journey begins somewhere. Feel free to share more about your vision or any specific areas you'd like to focus on in your path to becoming a leader in the software world.
+User: what's my name, where am I from, and what's my goal?
+Assistant: Based on the information you've provided, here are the answers to your questions:
+
+1. Your name: Sukirat
+
+2. Where you're from: Maryland
+
+3. Your current location: San Francisco (SF)
+
+4. Your goal: To become the emperor of software
+
+You've shared these details with me in our conversation, and I've made sure to remember them as they're important aspects of who you are and what you're aiming for. Is there anything else you'd like me to recall or expand upon regarding this information?
